@@ -76,6 +76,22 @@ previous line in a PCB file. Analogous to `c-basic-offset'."
   :type 'integer
   :group 'pcb)
 
+(defun pcb-mode-parens-on-line ()
+  "Return a count of the parentheses on the line, with ( counted
+as +1 and ) counted as -1, ignoring any that font-lock has
+decided are inside strings"
+  (let ((line (thing-at-point 'line))
+        (pos (line-beginning-position))
+        (n 0)
+        (count 0))
+    (while (< n (length line))
+      (unless (get-text-property pos 'face)
+        (cond
+         ((= ?\( (elt line n)) (setq count (1+ count)))
+         ((= ?\) (elt line n)) (setq count (1- count)))))
+      (setq n (1+ n) pos (1+ pos)))
+    count))
+
 (defun pcb-mode-calculate-indent ()
   "Return appropriate indentation for current line in a PCB file:
 always returns a non-negative integer. This is either the
@@ -85,13 +101,11 @@ indentation of the previous line or increased/decreased by
         (last-line-indent 0))
     (unless (= 1 (line-number-at-pos))   
       (save-excursion
-        (beginning-of-line)
-        (backward-char)
-        (setq last-line-indent (current-indentation))
-        (when (looking-back "([[:space:]]*") (setq diff (+ diff 1)))))
+        (beginning-of-line 0)
+        (setq diff (+ diff (max (pcb-mode-parens-on-line) 0)))
+        (setq last-line-indent (current-indentation))))
     (save-excursion
-      (end-of-line)
-      (when (looking-back ")[[:space:]]*") (setq diff (- diff 1))))
+      (setq diff (+ diff (min (pcb-mode-parens-on-line) 0))))
     (+ last-line-indent (* diff pcb-mode-offset))))
 
 (defun pcb-mode-indent-line ()
