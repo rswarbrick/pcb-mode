@@ -1,7 +1,6 @@
 ;;; pcb-mode.el --- major mode providing a pcb mode hook for Emacs
 
 ;; TODO:
-;; - Indentation
 ;; - Abbrevs
 ;; - Templating incl. "new footprint"
 ;; - Load in PCB
@@ -69,6 +68,48 @@ character immediately following a \"starting\" quote."
       (put-text-property
        (1+ pos) (+ pos 2) 'syntax-table (string-to-syntax "w")))))
 
+;;; Indentation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defcustom pcb-mode-offset 2
+  "The amount of offset to indent by when there is a ( ending the
+previous line in a PCB file. Analogous to `c-basic-offset'."
+  :type 'integer
+  :group 'pcb)
+
+(defun pcb-mode-calculate-indent ()
+  "Return appropriate indentation for current line in a PCB file:
+always returns a non-negative integer. This is either the
+indentation of the previous line or increased/decreased by
+`pcb-mode-offset' (the analogue of `c-basic-offset')."
+  (let ((diff 0)
+        (last-line-indent 0))
+    (unless (= 1 (line-number-at-pos))   
+      (save-excursion
+        (beginning-of-line)
+        (backward-char)
+        (setq last-line-indent (current-indentation))
+        (when (looking-back "([[:space:]]*") (setq diff (+ diff 1)))))
+    (save-excursion
+      (end-of-line)
+      (when (looking-back ")[[:space:]]*") (setq diff (- diff 1))))
+    (+ last-line-indent (* diff pcb-mode-offset))))
+
+(defun pcb-mode-indent-line ()
+  "Indent current line as PCB data."
+  (interactive)
+  (let ((indent (pcb-mode-calculate-indent))
+        (minus-pos (- (point-max) (point)))
+        (bol (progn (beginning-of-line) (point))))
+    (skip-chars-forward " \t")
+    (let ((shift-amount (- indent (current-column))))
+      (unless (zerop shift-amount)
+        (delete-region bol (point))
+        (indent-to indent))
+      ;; Move to the start of the real line if we started inside the
+      ;; indentation.
+      (if (> (- (point-max) minus-pos) (point))
+          (goto-char (- (point-max) minus-pos))))))
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   ;; Set up commenting functionality.
@@ -82,6 +123,10 @@ character immediately following a \"starting\" quote."
   (set-syntax-table pcb-mode-syntax-table)
   (set (make-local-variable 'syntax-propertize-function)
        pcb-mode-syntax-propertize-function)
+
+  ;; Indentation
+  (set (make-local-variable 'indent-line-function)
+       'pcb-mode-indent-line)
 
   ;; Mode name
   (setq mode-name "PCB"))
