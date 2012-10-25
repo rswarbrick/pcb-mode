@@ -1,7 +1,6 @@
 ;;; pcb-mode.el --- major mode providing a pcb mode hook for Emacs
 
 ;; TODO:
-;; - Templating incl. "new footprint"
 ;; - Load in PCB
 ;; - Speedbar/Imenu navigation
 ;; - Delete auto-mode-alist bit.
@@ -129,6 +128,97 @@ indentation of the previous line or increased/decreased by
   "Abbrev table in use in PCB buffers.")
 (define-abbrev-table 'pcb-mode-abbrev-table ())
 
+;;; Templates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require 'tempo)
+
+(defvar pcb-mode-tempo-taglist nil
+  "A tag list for tempo in PCB mode.")
+
+(defun pcb-mode-register-tempo-abbrev (name)
+  "Register a mode-specific abbrev for PCB for the tempo template
+with the given NAME. NAME should be a symbol, without the PCB-
+prefix added to tempo template names."
+  (let ((template (intern (concat "tempo-template-pcb-" (symbol-name name)))))
+    (define-abbrev pcb-mode-abbrev-table
+      (symbol-name name) "" template :system t)))
+
+(defmacro pcb-mode-define-template (name documentation expansion)
+  "Define a tempo template that expands the symbol name of NAME with
+EXPANSION. See `tempo-define-template' for details of EXPANSION. Also registers
+a mode-specific abbreviation, with the same name."
+  (declare (indent 2))
+  (unless (symbolp name) (error "NAME must be a symbol."))
+  (let* ((name-string (symbol-name name))
+        (template-name (concat "pcb-" name-string)))
+    `(progn
+       (tempo-define-template ,template-name ',expansion ,name-string
+                              ,documentation 'pcb-mode-tempo-taglist)
+       (pcb-mode-register-tempo-abbrev ',name)
+       nil)))
+
+(defmacro pcb-mode-standard-template (name pcb-string body-p &rest prompts)
+  "Define a tempo template expanding NAME as with
+`pcb-mode-define-template'. However, this just takes a list of
+prompts and follows the standard format. PCB-STRING is the string
+that PCB uses to name the object.
+
+PROMPTS is a list. Each member is either a string, in which case
+it is used as a prompt (with an appended \": \"), or it is a
+list, in which case the contents are included verbatim. If BODY-P
+is true, we also insert parentheses to hold a body."
+  (declare (indent 3))
+  (let ((doc (format "Insert a %s element." (symbol-name name))))
+    `(pcb-mode-define-template ,name ,doc
+       (,pcb-string " ["
+        ,@(let ((collected))
+            (dolist (prompt prompts (nreverse (cdr collected)))
+              (setq collected
+                    (append (if (listp prompt)
+                                (cons ", " (reverse prompt))
+                              `(", " (p ,(concat prompt ": "))))
+                            collected))))
+        "]"
+        ,@(if body-p
+              '(" (" > n ")" >)
+            nil)))))
+
+;; Element [SFlags "Desc" "Name" "Value" MX MY TX TY TDir TScale TSFlags]
+(pcb-mode-standard-template elt "Element" t
+  ("\"\"") "Description string" "Refdes" "Value"
+  ;; Don't place the text or mark yet: we're never going to know until we've
+  ;; placed contents anyway.
+  ("0, 0, 0, 0, 0, 100, \"\""))
+
+;; ElementArc [X Y Width Height StartAngle DeltaAngle Thickness]
+(pcb-mode-standard-template eltarc "ElementArc" nil
+  "Arc centre x coord" "Arc centre y coord"
+  "Arc width" "Arc height"
+  "Starting angle (degrees)" "Swept angle (degrees)"
+  "Line width")
+
+;; ElementLine [X1 Y1 X2 Y2 Thickness]
+(pcb-mode-standard-template eltline "ElementLine" nil
+  "Start X coordinate" "Start Y coordinate"
+  "End X coordinate" "End Y coordinate"
+  "Line width")
+
+;; Pad [rX1 rY1 rX2 rY2 Thickness Clearance Mask "Name" "Number" SFlags]
+(pcb-mode-standard-template pad "Pad" nil
+  "Start X coordinate" "Start Y coordinate"
+  "End X coordinate" "End Y coordinate"
+  "Pad Thickness" "Additional clearance width"
+  "Solder mask opening width" "Name of pad" "Number of pad"
+  ("\"\""))
+
+;; Pin [rX rY Thickness Clearance Mask Drill "Name" "Number" SFlags]
+(pcb-mode-standard-template pin "Pin" nil
+  "X coordinate" "Y coordinate"
+  "Copper outer diameter"
+  "Additional clearance width"
+  "Solder mask opening diameter"
+  "Drill diameter" "Name of pin" "Number of pin" ("\"\""))
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   ;; Set up commenting functionality.
@@ -150,6 +240,10 @@ indentation of the previous line or increased/decreased by
   ;; Abbrevs
   (set (make-local-variable 'local-abbrev-table)
        pcb-mode-abbrev-table)
+
+  ;; Tempo
+  (setq tempo-local-tags
+        (cons '(pcb-mode-tempo-taglist) tempo-local-tags))
 
   ;; Mode name
   (setq mode-name "PCB"))
