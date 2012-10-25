@@ -1,7 +1,6 @@
 ;;; pcb-mode.el --- major mode providing a pcb mode hook for Emacs
 
 ;; TODO:
-;; - Abbrevs
 ;; - Templating incl. "new footprint"
 ;; - Load in PCB
 ;; - Speedbar/Imenu navigation
@@ -124,6 +123,12 @@ indentation of the previous line or increased/decreased by
       (if (> (- (point-max) minus-pos) (point))
           (goto-char (- (point-max) minus-pos))))))
 
+;;; Abbrevs ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar pcb-mode-abbrev-table nil
+  "Abbrev table in use in PCB buffers.")
+(define-abbrev-table 'pcb-mode-abbrev-table ())
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   ;; Set up commenting functionality.
@@ -141,6 +146,10 @@ indentation of the previous line or increased/decreased by
   ;; Indentation
   (set (make-local-variable 'indent-line-function)
        'pcb-mode-indent-line)
+
+  ;; Abbrevs
+  (set (make-local-variable 'local-abbrev-table)
+       pcb-mode-abbrev-table)
 
   ;; Mode name
   (setq mode-name "PCB"))
