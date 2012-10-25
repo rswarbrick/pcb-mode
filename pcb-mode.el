@@ -1,21 +1,45 @@
 ;;; pcb-mode.el --- major mode providing a pcb mode hook for Emacs
-
+;;
+;; Author: Rupert Swarbrick (2012)
+;;
+;; Documentation:
+;; ==============
+;;
+;; PCB mode is a major mode for editing files for the gEDA PCB program within
+;; Emacs. To load it automatically for both footprint (.fp) and pcb (.pcb)
+;; files, add the following incantation to your .emacs:
+;;
+;; (let ((pair
+;;        (cons (concat "\\." (regexp-opt '("pcb" "fp"))) 'pcb-mode)))
+;;   (setf auto-mode-alist
+;;         (cons pair (remove pair auto-mode-alist))))
+;;
+;; The mode features syntax highlighting and automatic indentation. To control
+;; the basic offset of the indentation, customize the variable
+;; `pcb-mode-offset'.
+;;
+;; There is also support for "templated insertion" using the tempo library. To
+;; use this, make sure abbrev mode is enabled (M-x abbrev-mode) and then insert
+;; one of the following keywords into your file, followed by a space or new
+;; line:
+;;
+;;   elt, eltarc, eltline, pad, pin
+;;
+;; These correspond to Element, ElementArc, ElementLine, Pad and Pin in the PCB
+;; file, respectively. To be prompted for the parameters in turn, ensure that
+;; `tempo-interactive' is on. (The default is off)
+;;
+;;
 ;; TODO:
+;; =====
+;;
 ;; - Load in PCB
 ;; - Speedbar/Imenu navigation
 ;; - Delete auto-mode-alist bit.
 
-(let ((pair (cons (concat "\\." (regexp-opt '("pcb" "fp"))) 'pcb-mode)))
-  (setf auto-mode-alist (cons pair (remove pair auto-mode-alist))))
-
 (defgroup pcb-mode nil
   "Customizations for PCB mode."
   :prefix "pcb-" :group 'text)
-
-(defcustom pcb-mode-hook nil
-  "List of hook functions run by `pcb-mode' (see `run-hooks')."
-  :type 'hook
-  :group 'pcb)
 
 (defconst pcb-mode-version 0 "Current version of PCB mode")
 
@@ -251,5 +275,10 @@ is true, we also insert parentheses to hold a body."
 
 ;; Make "require" work
 (provide 'pcb-mode)
+
+;; Local Variables:
+;; coding: utf-8
+;; indent-tabs-mode: nil
+;; End:
 
 ;;; pcb-mode.el ends here
