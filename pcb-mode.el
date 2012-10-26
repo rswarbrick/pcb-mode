@@ -14,21 +14,7 @@
 ;;   (setf auto-mode-alist
 ;;         (cons pair (remove pair auto-mode-alist))))
 ;;
-;; The mode features syntax highlighting and automatic indentation. To control
-;; the basic offset of the indentation, customize the variable
-;; `pcb-mode-offset'.
-;;
-;; There is also support for "templated insertion" using the tempo library. To
-;; use this, make sure abbrev mode is enabled (M-x abbrev-mode) and then insert
-;; one of the following keywords into your file, followed by a space or new
-;; line:
-;;
-;;   elt, eltarc, eltline, pad, pin
-;;
-;; These correspond to Element, ElementArc, ElementLine, Pad and Pin in the PCB
-;; file, respectively. To be prompted for the parameters in turn, ensure that
-;; `tempo-interactive' is on. (The default is off)
-;;
+;; For more information on usage, see the docstring for `pcb-mode'.
 ;;
 ;; TODO:
 ;; =====
@@ -121,7 +107,7 @@ indentation of the previous line or increased/decreased by
 `pcb-mode-offset' (the analogue of `c-basic-offset')."
   (let ((diff 0)
         (last-line-indent 0))
-    (unless (= 1 (line-number-at-pos))   
+    (unless (= 1 (line-number-at-pos))
       (save-excursion
         (beginning-of-line 0)
         (setq diff (+ diff (max (pcb-mode-parens-on-line) 0)))
@@ -243,8 +229,74 @@ is true, we also insert parentheses to hold a body."
   "Solder mask opening diameter"
   "Drill diameter" "Name of pin" "Number of pin" ("\"\""))
 
+;;; Inferior PCB process
+(defvar pcb-mode-pcb-program "pcb"
+  "The name/path of the PCB program.")
+
+(defun pcb-mode-make-inferior-pcb (filename)
+  "Run a new PCB process using `pcb-mode-pcb-program', visiting
+FILENAME."
+  (process-put
+   (start-process
+    "inferior-pcb" " *inferior-pcb*" pcb-mode-pcb-program filename)
+   'pcb-mode-filename (expand-file-name filename)))
+
+(defun pcb-mode-inferior-targets ()
+  "Return a list of filenames that are currently being visited by
+inferior PCB processes."
+  (let ((acc))
+    (dolist (proc (process-list) acc)
+      (let ((filename (process-get proc 'pcb-mode-filename)))
+        (when filename (setq acc (cons filename acc)))))))
+
+(defun pcb-mode-inferior-pcb (&optional filename)
+  "If there isn't already one we're running, start a PCB process
+visiting FILENAME. If nil, then visit the file of the current
+buffer."
+  (interactive)
+  (let ((filename
+         (or filename (buffer-file-name)
+             (error "No file associated to current buffer."))))
+    (unless (member (expand-file-name filename) (pcb-mode-inferior-targets))
+      (pcb-mode-make-inferior-pcb filename))))
+
+;;; Keymap ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defvar pcb-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-p") 'pcb-mode-inferior-pcb)
+    map)
+  "Keymap for `pcb-mode'.")
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
+  "Major mode for editing files for the gEDA PCB program.
+
+The mode features syntax highlighting and automatic
+indentation. To control the basic offset of the indentation,
+customize the variable `pcb-mode-offset'.
+
+There is also support for \"templated insertion\" using the tempo
+library. To use this, make sure abbrev mode is
+enabled (\\[abbrev-mode]) and then insert one of the following
+keywords into your file, followed by a space or new line:
+
+  elt, eltarc, eltline, pad, pin
+
+These correspond to Element, ElementArc, ElementLine, Pad and Pin
+in the PCB file, respectively. To be prompted for the parameters
+in turn, ensure that `tempo-interactive' is on. (The default is
+off)"
+
+  ;; Kill local variables, as instructed in "Major Mode Conventions"
+  (kill-all-local-variables)
+
+  ;; Set major mode
+  (setq major-mode 'pcb-mode)
+  (setq mode-name "PCB")
+
+  ;; Key map
+  (use-local-map pcb-mode-map)
+
   ;; Set up commenting functionality.
   (set (make-local-variable 'comment-start) "#")
 
@@ -267,10 +319,7 @@ is true, we also insert parentheses to hold a body."
 
   ;; Tempo
   (setq tempo-local-tags
-        (cons '(pcb-mode-tempo-taglist) tempo-local-tags))
-
-  ;; Mode name
-  (setq mode-name "PCB"))
+        (cons '(pcb-mode-tempo-taglist) tempo-local-tags)))
 
 
 ;; Make "require" work
