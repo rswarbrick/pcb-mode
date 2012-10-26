@@ -1,10 +1,11 @@
 ;;; pcb-mode.el --- major mode providing a pcb mode hook for Emacs
-;;
-;; Author: Rupert Swarbrick (2012)
-;;
-;; Documentation:
-;; ==============
-;;
+
+;; Copyright (C) 2012  Rupert Swarbrick
+
+;; Author: Rupert Swarbrick
+
+;;; Commentary:
+
 ;; PCB mode is a major mode for editing files for the gEDA PCB program within
 ;; Emacs. To load it automatically for both footprint (.fp) and pcb (.pcb)
 ;; files, add the following incantation to your .emacs:
@@ -28,14 +29,14 @@
 ;; These correspond to Element, ElementArc, ElementLine, Pad and Pin in the PCB
 ;; file, respectively. To be prompted for the parameters in turn, ensure that
 ;; `tempo-interactive' is on. (The default is off)
-;;
-;;
-;; TODO:
-;; =====
-;;
+
+;;; TODO:
+
 ;; - Load in PCB
 ;; - Speedbar/Imenu navigation
 ;; - Delete auto-mode-alist bit.
+
+;;; Code:
 
 (defgroup pcb-mode nil
   "Customizations for PCB mode."
