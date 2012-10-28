@@ -15,13 +15,6 @@
 ;;         (cons pair (remove pair auto-mode-alist))))
 ;;
 ;; For more information on usage, see the docstring for `pcb-mode'.
-;;
-;; TODO:
-;; =====
-;;
-;; - Load in PCB
-;; - Speedbar/Imenu navigation
-;; - Delete auto-mode-alist bit.
 
 (defgroup pcb-mode nil
   "Customizations for PCB mode."
@@ -267,6 +260,13 @@ buffer."
     map)
   "Keymap for `pcb-mode'.")
 
+;;; Imenu ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defvar pcb-mode-imenu-generic-expression
+  `((nil
+     ,(concat "Element[[:space:]]*\\[[[:space:]]*"
+              "\".*?\"[[:space:]]+\".*?\"[[:space:]]+\"\\(.*?\\)\"")
+     1)))
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   "Major mode for editing files for the gEDA PCB program.
@@ -319,7 +319,10 @@ off)"
 
   ;; Tempo
   (setq tempo-local-tags
-        (cons '(pcb-mode-tempo-taglist) tempo-local-tags)))
+        (cons '(pcb-mode-tempo-taglist) tempo-local-tags))
+
+  ;; Imenu
+  (setq imenu-generic-expression pcb-mode-imenu-generic-expression))
 
 
 ;; Make "require" work
