@@ -268,8 +268,8 @@ is true, we also insert parentheses to hold a body."
             (dolist (prompt prompts (nreverse (cdr collected)))
               (setq collected
                     (append (if (listp prompt)
-                                (cons ", " (reverse prompt))
-                              `(", " (p ,(concat prompt ": "))))
+                                (cons " " (reverse prompt))
+                              `(" " (p ,(concat prompt ": "))))
                             collected))))
         "]"
         ,@(if body-p
