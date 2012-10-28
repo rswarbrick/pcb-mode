@@ -376,6 +376,7 @@ These correspond to Element, ElementArc, ElementLine, Pad and Pin
 in the PCB file, respectively. To be prompted for the parameters
 in turn, ensure that `tempo-interactive' is on. (The default is
 off)"
+  (interactive)
 
   ;; Kill local variables, as instructed in "Major Mode Conventions"
   (kill-all-local-variables)
@@ -391,7 +392,8 @@ off)"
   (set (make-local-variable 'comment-start) "#")
 
   ;; Font lock keywords
-  (set (make-local-variable 'font-lock-defaults) '(pcb-mode-keywords))
+  (set (make-local-variable 'font-lock-defaults)
+       `(,(mapcar #'car pcb-mode-keywords)))
   (font-lock-set-defaults)
 
   ;; Syntax recognition
