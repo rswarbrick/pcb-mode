@@ -25,14 +25,104 @@
 ;;; Font lock and syntax recognition ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defconst pcb-mode-keywords
-  '("Arc" "Attribute" "Connect" "Cursor" "DRC" "Element" "ElementArc"
-    "ElementLine" "FileVersion" "Flags" "Grid" "Groups" "Layer" "Line"
-    "Mark" "Net" "Netlist" "Pad" "Pin" "PolyArea" "Polygon" "Rat"
-    "Styles" "Symbol" "SymbolLine" "Text" "Thermal" "Via")
-  "The various PCB keywords.")
+  '(("Arc"
+     (nil "X" "Y" "Width" "Height" "Thickness" "Clearance"
+          "StartAngle" "DeltaAngle" "SFlags")
+     ("(" "X" "Y" "Width" "Height" "Thickness"
+          "StartAngle" "DeltaAngle" "SFlags"))
+    ("Attribute" ("(" "Name" "Value"))
+    ("Connect" ("(" "PinPad"))
+    ("Cursor" (nil "X" "Y" "Zoom"))
+    ("DRC"
+     ("[" "Bloat" "Shrink" "Line" "Silk" "Drill" "Ring")
+     ("[" "Bloat" "Shrink" "Line" "Silk")
+     ("[" "Bloat" "Shrink" "Line"))
+    ("Element"
+     ("[" "SFlags" "\"Desc\"" "\"Name\"" "\"Value\"" "MX" "MY"
+      "TX" "TY" "TDir" "TScale" "TSFlags")
+     ("(" "NFlags" "\"Desc\"" "\"Name\"" "\"Value\"" "MX" "MY"
+      "TX" "TY" "TDir" "TScale" "TNFlags")
+     ("(" "NFlags" "\"Desc\"" "\"Name\"" "\"Value\""
+      "TX" "TY" "TDir" "TScale" "TNFlags")
+     ("(" "NFlags" "\"Desc\"" "\"Name\""
+      "TX" "TY" "TDir" "TScale" "TNFlags")
+     ("(" "\"Desc\"" "\"Name\""
+      "TX" "TY" "TDir" "TScale" "TNFlags"))
+    ("ElementArc"
+     (nil "X" "Y" "Width" "Height"
+          "StartAngle" "DeltaAngle" "Thickness"))
+    ("ElementLine"
+     (nil "X1" "Y1" "X2" "Y2" "Thickness"))
+    ("FileVersion"
+     ("[" "Version"))
+    ("Flags"
+     ("(" "Number"))
+    ("Grid"
+     (nil "Step" "OffsetX" "OffsetY" "Visible")
+     ("(" "Step" "OffsetX" "OffsetY"))
+    ("Groups"
+     ("(" "\"String\""))
+    ("Layer"
+     ("(" "LayerNum" "\"Name\""))
+    ("Line"
+     ("[" "X1" "Y1" "X2" "Y2" "Thickness" "Clearance" "SFlags")
+     ("(" "X1" "Y1" "X2" "Y2" "Thickness" "Clearance" "NFlags")
+     ("(" "X1" "Y1" "X2" "Y2" "Thickness" "NFlags"))
+    ("Mark" (nil "X" "Y"))
+    ("Net"
+     ("(" "\"Name\"" "\"Style\""))
+    ("Netlist"
+     ("("))
+    ("Pad"
+     ("[" "rX1" "rY1" "rX2" "rY2" "Thickness" "Clearance" "Mask"
+      "\"Name\"" "\"Number\"" "SFlags")
+     ("(" "rX1" "rY1" "rX2" "rY2" "Thickness" "Clearance" "Mask"
+      "\"Name\"" "\"Number\"" "NFlags")
+     ("(" "aX1" "aY1" "aX2" "aY2" "Thickness"
+      "\"Name\"" "\"Number\"" "NFlags")
+     ("(" "aX1" "aY1" "aX2" "aY2" "Thickness"
+      "\"Name\"" "NFlags"))
+    ("PCB"
+     (nil "\"Name\"" "Width" "Height")
+     ("(" "\"Name\""))
+    ("Pin"
+     ("[" "rX" "rY" "Thickness" "Clearance" "Mask" "Drill"
+      "\"Name\"" "\"Number\"" "SFlags")
+     ("(" "rX" "rY" "Thickness" "Clearance" "Mask" "Drill"
+      "\"Name\"" "\"Number\"" "NFlags")
+     ("(" "aX" "aY" "Thickness" "Drill"
+      "\"Name\"" "\"Number\"" "NFlags")
+     ("(" "aX" "aY" "Thickness" "Drill" "\"Name\"" "NFlags")
+     ("(" "aX" "aY" "Thickness" "\"Name\"" "NFlags"))
+    ("PolyArea" ("[" "Area"))
+    ("Polygon" ("(" "SFlags"))
+    ("Rat"
+     ("[" "X1" "Y1" "Group1" "X2" "Y2" "Group2" "SFlags")
+     ("(" "X1" "Y1" "Group1" "X2" "Y2" "Group2" "NFlags"))
+    ("Styles" ("(" "\"String\""))
+    ("Symbol" (nil "Char" "Delta"))
+    ("SymbolLine" (nil "X1" "Y1" "X2" "Y1" "Thickness"))
+    ("Text"
+     ("[" "X" "Y" "Direction" "Scale" "\"String\"" "SFlags")
+     ("(" "X" "Y" "Direction" "Scale" "\"String\"" "NFlags")
+     ("(" "X" "Y" "Direction" "\"String\"" "NFlags"))
+    ("Thermal" ("[" "Scale"))
+    ("Via"
+     ("[" "X" "Y" "Thickness" "Clearance" "Mask" "Drill" "\"Name\"" "SFlags")
+     ("(" "X" "Y" "Thickness" "Clearance" "Mask" "Drill" "\"Name\"" "NFlags")
+     ("(" "X" "Y" "Thickness" "Clearance" "Drill" "\"Name\"" "NFlags")
+     ("(" "X" "Y" "Thickness" "Drill" "\"Name\"" "NFlags")
+     ("(" "X" "Y" "Thickness" "\"Name\"" "NFlags")))
+  "The various PCB keywords. Each entry is a list. Its first
+entry is the keyword and then the following elements are
+themselves lists. Each of those lists is a list of arguments,
+except the first entry, which is nil, \"[\" or \"(\". Either type
+of bracket means these arguments can only be chosen with that
+surrounding bracket. An entry of NIL means that either type
+works.")
 
 (defconst pcb-mode-keyword-regexp
-  (regexp-opt pcb-mode-keywords)
+  (regexp-opt (mapcar #'car pcb-mode-keywords))
   "An optimised regexp that matches `pcb-keywords'.")
 
 (defconst pcb-mode-syntax-table
