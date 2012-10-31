@@ -1,8 +1,7 @@
 ;;; pcb-mode.el --- major mode providing a pcb mode hook for Emacs
 
 ;; Copyright (C) 2012  Rupert Swarbrick
-
-;; Author: Rupert Swarbrick
+;; Author: Rupert Swarbrick <rswarbrick@gmail.com>
 
 ;;; Commentary:
 
