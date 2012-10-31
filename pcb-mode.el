@@ -359,6 +359,177 @@ buffer."
               "\".*?\"[[:space:]]+\".*?\"[[:space:]]+\"\\(.*?\\)\"")
      1)))
 
+;;; Eldoc ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun pcb-mode-keyword-at-point ()
+  "If point is at a keyword, return its entry in
+`pcb-mode-keywords' (see that variable for the
+format). Otherwise, return nil. "
+  (let ((key (car (member (word-at-point)
+                          (mapcar #'car pcb-mode-keywords)))))
+    (when key (assoc key pcb-mode-keywords))))
+
+(defun pcb-mode-find-plain-match (re start end &optional backwards)
+  "Hunt for a match for the regular expression RE between START
+and END in the current buffer. \"Plain\" refers to the fact that
+we only consider matches where the first character has a null
+'face property. This allows us to ignore things like the contents
+of string constants.
+
+Either START or END can be null, in which case they are taken to
+be `point-min' and `point-max' respectively. If BACKWARDS is
+true, search backwards from the end."
+  (let ((start-pos
+         (if backwards (or end (point-max)) (or start (point-min))))
+        (searcher (if backwards 're-search-backward 're-search-forward))
+        (bound (if backwards start end)))
+    (save-excursion
+      (goto-char start-pos)
+      (catch 'done
+        (while (funcall searcher re bound t)
+          (unless (get-text-property (match-beginning 0) 'face)
+            (throw 'done (match-beginning 0))))
+        nil))))
+
+(defun pcb-mode-pos-in-arglist (start end)
+  "Return the index of the current position in the arglist
+bounded by START and END, together with its total length.
+
+START and END should be valid positions in the buffer. Arguments
+are separated by whitespace (not including that inside strings,
+of course)."
+  (save-excursion
+    (let ((args-found 0) pos (old-point (point)))
+      (goto-char start)
+      (catch 'loop
+        (while (< (point) end)
+          (skip-syntax-forward " ")
+          (let ((next-space
+                 (pcb-mode-find-plain-match "[[:space:]]+" (point) end)))
+            (when (and (not pos) (> (point) old-point))
+              (setq pos (1- args-found)))
+            (unless next-space
+              (throw 'loop nil))
+            (setq args-found (1+ args-found))
+            (goto-char next-space))))
+      (list (or pos args-found) (1+ args-found)))))
+
+(defun pcb-mode-find-keyword ()
+  "Search near point for a keyword and argument list. If we are
+within white space of a keyword, use that. Otherwise, if we
+are [!] in the situation
+
+  <PCB-keyword> ( <no-parens> [!] <still-no-brackets> <closing-)?>
+
+or the same with [ and maybe ], then pick up on that.
+
+If there is a match, return (KEYWORD POS NUM-ARGS BRACKET-CHAR
+CLOSED-P) where KEYWORD is the keyword found, POS and NUM-ARGS
+might be non-nil if we're inside an arglist. NUM-ARGS is the
+number of arguments found so far and POS is the index of the
+argument where point is found. If an opening bracket was found,
+BRACKET-CHAR is its value. If there is a closing bracket then
+CLOSED-P is non-nil."
+  ;; First look to see whether we're on or immediately after a PCB keyword (on
+  ;; the same line)
+  (let ((pos (point)) keyword open close bracket-char)
+    (save-excursion
+      (skip-syntax-forward "w")
+      (skip-syntax-backward " ")
+      (setq keyword (car (pcb-mode-keyword-at-point))))
+    (unless keyword
+      (let ((open-bracket (pcb-mode-find-plain-match
+                           "\\[\\|(" (line-beginning-position) pos t))
+            (close-bracket))
+        (when open-bracket
+          (save-excursion
+            ;; If we jump back a word from the [ or (, do we find a PCB keyword?
+            (goto-char open-bracket)
+            (backward-word)
+            (when (looking-at pcb-mode-keyword-regexp)
+              ;; Lookin' good!
+              (setq keyword (match-string 0)
+                    open (1+ open-bracket))))
+          ;; Go back to the opening bracket and then jump forward a sexp. 
+          (save-excursion
+            (goto-char open-bracket)
+            (setq close (ignore-errors (forward-sexp) (1- (point)))))
+          ;; If close < pos, then the point was after the whole of the argument
+          ;; list, so give up!
+          (when (and close (< close pos))
+            (setq keyword nil open nil close nil))
+          ;; Otherwise, record the value of bracket-char
+          (setq bracket-char
+                (elt (buffer-substring-no-properties
+                      open-bracket (1+ open-bracket)) 0)))))
+    (cons keyword
+          (when open
+            (append (pcb-mode-pos-in-arglist
+                     open (or close (line-end-position)))
+                    (list bracket-char
+                          (and close t)))))))
+
+(defun pcb-mode-eldoc-situation ()
+  "Search around point for a PCB keyword, with argument list. If
+the point is in a situation like
+
+  Element (arg1 arg2<!> arg3)
+
+\(with or without the closing parenthesis), return a list
+
+  '(\"Element\" ARGS 1).
+
+Here, the 1 refers to the fact that point is at the argument at
+position one in the list. ARGS is the best guess for the argument
+list to the keyword (including the start bracket). If we aren't
+in such a situation, return nil."
+  (let ((pmfk (pcb-mode-find-keyword)))
+    ;; pmfk is (keyword pos num-args bracket-char closed-p)
+    (let ((keyword (first pmfk))
+          (pos (second pmfk))
+          (num-args (third pmfk))
+          (bracket-char (fourth pmfk)))
+      (when keyword
+        (let ((arglists (cdr (assoc keyword pcb-mode-keywords))))
+          (list keyword
+                (or (catch 'result
+                      (dolist (arglist arglists)
+                        (when (and (or (null (first arglist))
+                                       (null bracket-char)
+                                       (= (elt (first arglist) 0) bracket-char))
+                                   (or (null num-args)
+                                       (<= num-args (length (rest arglist)))))
+                          (throw 'result arglist))))
+                    (first arglists))
+                pos))))))
+
+(defun pcb-mode-eldoc-documentation-function ()
+  "Return a one-line string for displaying information about the
+current PCB keyword and its arguments. Is used as
+`eldoc-documentation-function' by `pcb-mode'."
+  (let ((pmes (pcb-mode-eldoc-situation)))
+    (let ((keyword (first pmes))
+          (arglist (second pmes))
+          (pos (third pmes)))
+      (when keyword
+        (let ((acc (concat keyword ": "
+                           (or (first arglist) "[")))
+              (arg-pos 0)
+              (pos (or pos -1)))
+          (set-text-properties 0 (length keyword)
+                               '(face font-lock-function-name-face)
+                               acc)
+          (dolist (arg (rest arglist))
+            (setq acc (concat acc (unless (= arg-pos 0) " ") arg))
+            (when (= arg-pos pos)
+              (add-text-properties (- (length acc) (length arg)) (length acc)
+                                   '(face eldoc-highlight-function-argument)
+                                   acc))
+            (setq arg-pos (1+ arg-pos)))
+          (setq acc
+                (concat acc (if (eq (elt (first arglist) 0) ?\() ")" "]")))
+          acc)))))
+
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   "Major mode for editing files for the gEDA PCB program.
@@ -416,7 +587,11 @@ off)"
         (cons '(pcb-mode-tempo-taglist) tempo-local-tags))
 
   ;; Imenu
-  (setq imenu-generic-expression pcb-mode-imenu-generic-expression))
+  (setq imenu-generic-expression pcb-mode-imenu-generic-expression)
+
+  ;; Eldoc
+  (set (make-local-variable 'eldoc-documentation-function)
+       'pcb-mode-eldoc-documentation-function))
 
 
 ;; Make "require" work
