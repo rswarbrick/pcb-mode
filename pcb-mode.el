@@ -548,7 +548,15 @@ keywords into your file, followed by a space or new line:
 These correspond to Element, ElementArc, ElementLine, Pad and Pin
 in the PCB file, respectively. To be prompted for the parameters
 in turn, ensure that `tempo-interactive' is on. (The default is
-off)"
+off)
+
+PCB mode supports the minor mode `eldoc-mode'. This is off by
+default; to turn it on use (\\[eldoc-mode]). For
+backwards-compatibility reasons, PCB allows several different
+sets of arguments to each keyword, which makes guessing argument
+lists rather problematic. We try to guess which one is right by
+looking at the brackets used and the number of arguments, but
+this is probably rather brittle."
   (interactive)
 
   ;; Kill local variables, as instructed in "Major Mode Conventions"
