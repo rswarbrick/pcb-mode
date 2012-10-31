@@ -529,6 +529,29 @@ current PCB keyword and its arguments. Is used as
                 (concat acc (if (eq (elt (first arglist) 0) ?\() ")" "]")))
           acc)))))
 
+;; Symbol completion
+(defun pcb-mode-completion-at-point ()
+  "Function used for the `completion-at-point-functions' variable
+in `pcb-mode'."
+  (with-syntax-table pcb-mode-syntax-table
+    (let* ((pos (point))
+           (beg
+            (save-excursion
+              (cond
+               ((eq (char-syntax (char-before)) ?\w)
+                (backward-word 1) (point))
+               ((eq (char-syntax (char-after)) ?\w)
+                (point))
+               (t nil))))
+           (end
+            (and beg
+                 (save-excursion
+                   (cond
+                    ((eq (char-syntax (char-after)) ?\w)
+                     (forward-word 1) (point))
+                    (t (point)))))))
+      (when (and beg end)
+        (list beg end (mapcar #'car pcb-mode-keywords))))))
 
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
@@ -538,10 +561,13 @@ The mode features syntax highlighting and automatic
 indentation. To control the basic offset of the indentation,
 customize the variable `pcb-mode-offset'.
 
-There is also support for \"templated insertion\" using the tempo
-library. To use this, make sure abbrev mode is
-enabled (\\[abbrev-mode]) and then insert one of the following
-keywords into your file, followed by a space or new line:
+There is symbol completion at point (use \\[complete-symbol]),
+which completes the PCB keywords. For quicker insertion of
+keywords with lots of parameters, there is also support for
+\"templated insertion\" using the tempo library. To use this,
+make sure abbrev mode is enabled (\\[abbrev-mode]) and then
+insert one of the following keywords into your file, followed by
+a space or new line:
 
   elt, eltarc, eltline, pad, pin
 
@@ -599,7 +625,11 @@ this is probably rather brittle."
 
   ;; Eldoc
   (set (make-local-variable 'eldoc-documentation-function)
-       'pcb-mode-eldoc-documentation-function))
+       'pcb-mode-eldoc-documentation-function)
+
+  ;; Completion
+  (set (make-local-variable 'completion-at-point-functions)
+       (cons 'pcb-mode-completion-at-point completion-at-point-functions)))
 
 
 ;; Make "require" work
