@@ -9,10 +9,15 @@
 ;; Emacs. To load it automatically for both footprint (.fp) and pcb (.pcb)
 ;; files, add the following incantation to your .emacs:
 ;;
-;; (let ((pair
-;;        (cons (concat "\\." (regexp-opt '("pcb" "fp"))) 'pcb-mode)))
-;;   (setf auto-mode-alist
-;;         (cons pair (remove pair auto-mode-alist))))
+;;   (let ((pair
+;;          (cons (concat "\\." (regexp-opt '("pcb" "fp"))) 'pcb-mode)))
+;;     (setf auto-mode-alist
+;;           (cons pair (remove pair auto-mode-alist))))
+;;
+;; If you don't want to load this file every time Emacs starts, you should
+;; ensure it is in your load path and then add the following form:
+;;
+;;   (autoload 'pcb-mode "pcb-mode" "Mode for editing PCB files" t)
 ;;
 ;; For more information on usage, see the docstring for `pcb-mode'.
 
