@@ -350,6 +350,7 @@ buffer."
 (defvar pcb-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-p") 'pcb-mode-inferior-pcb)
+    (define-key map (kbd "C-c C-r") 'pcb-mode-insert-pad-as-rectangle)
     map)
   "Keymap for `pcb-mode'.")
 
@@ -560,6 +561,39 @@ in `pcb-mode'."
 This hook is automatically executed after `pcb-mode' is fully
 loaded.")
 
+
+;; Making pads via rectangles
+(defun pcb-mode-rectangle-to-pad (x1 y1 x2 y2)
+  "Take (X1 Y1) (X2 Y2) opposite coordinates. These should be
+numbers, interpreted as dimensions in mils. Returns a list (RX1
+RY1 RX2 RY2 THICKNESS) that will serve as the first five numbers
+for a Pad[] call, covering the specified region."
+  (let* ((dx (abs (- x2 x1))) (dy (abs (- y2 y1)))
+         (centre-x (/ (+ x1 x2) 2.0)) (centre-y (/ (+ y1 y2) 2.0))
+         (sweep-x (if (> dx dy) (/ (- dx dy) 2.0) 0))
+         (sweep-y (if (> dy dx) (/ (- dy dx) 2.0) 0)))
+    (when (or (zerop dx) (zerop dy))
+      (error "Degenerate rectangle for pad."))
+    (list (- centre-x sweep-x) (- centre-y sweep-y)
+          (+ centre-x sweep-x) (+ centre-y sweep-y)
+          (max dx dy))))
+
+(defun pcb-mode-insert-pad-as-rectangle (x1 y1 x2 y2 clr sldr)
+  "Prompt the user for dimensions of a rectangle to cover and
+insert a corresponding pad. The arguments (X1,Y1,X2,Y2) are
+coordinates of opposite corners of the rectangle. CLR and SLDR
+are the additional distance from the rectangle to the next
+object (clearance) and the edge of the solder mask,
+respectively."
+  (interactive
+   "nX1: \nnY1: \nnX2: \nnY2: \nnAdditional clearance: \nnAdditional solder mask clearance: ")
+  (let ((args (pcb-mode-rectangle-to-pad x1 y1 x2 y2)))
+    (insert
+     (apply 'format
+            (concat "Pad [%smil %smil %smil %smil %smil %smil %smil"
+                    " \"\" \"\" \"\"]")
+            (append args (list clr (+ (nth 4 args) sldr)))))))
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   "Major mode for editing files for the gEDA PCB program.
@@ -586,6 +620,11 @@ These correspond to Element, ElementArc, ElementLine, Pad and Pin
 in the PCB file, respectively. To be prompted for the parameters
 in turn, ensure that `tempo-interactive' is on. (The default is
 off)
+
+Another convenience is `pcb-mode-insert-pad-as-rectangle', which
+is bound to \\[pcb-mode-insert-pad-as-rectangle]. This allows the
+user to insert a pad by giving the corners of the rectangle it
+should cover.
 
 PCB mode supports the minor mode `eldoc-mode'. This is off by
 default; to turn it on use (\\[eldoc-mode]). For
