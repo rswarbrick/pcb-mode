@@ -611,6 +611,8 @@ like enabling `eldoc-mode' or `abbrev-mode'."
 
   ;; Set up commenting functionality.
   (set (make-local-variable 'comment-start) "#")
+  (set (make-local-variable 'comment-start-skip)
+       "\\(\\(?:^\\|[^'\n]\\)[[:space:]]*\\)#")
 
   ;; Font lock keywords
   (set (make-local-variable 'font-lock-defaults)
