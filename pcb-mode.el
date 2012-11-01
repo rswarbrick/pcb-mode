@@ -284,7 +284,7 @@ is true, we also insert parentheses to hold a body."
   ("\"\"") "Description string" "Refdes" "Value"
   ;; Don't place the text or mark yet: we're never going to know until we've
   ;; placed contents anyway.
-  ("0, 0, 0, 0, 0, 100, \"\""))
+  ("0 0 0 0 0 100 \"\""))
 
 ;; ElementArc [X Y Width Height StartAngle DeltaAngle Thickness]
 (pcb-mode-standard-template eltarc "ElementArc" nil
