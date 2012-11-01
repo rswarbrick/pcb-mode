@@ -661,7 +661,7 @@ like enabling `eldoc-mode' or `abbrev-mode'."
 
   ;; Font lock keywords
   (set (make-local-variable 'font-lock-defaults)
-       `((,pcb-mode-keyword-regexp 0 font-lock-keyword-face)))
+       `(((,pcb-mode-keyword-regexp 0 font-lock-keyword-face))))
   (font-lock-set-defaults)
 
   ;; Syntax recognition
