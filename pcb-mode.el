@@ -178,7 +178,8 @@ decided are inside strings"
         (n 0)
         (count 0))
     (while (< n (length line))
-      (unless (get-text-property pos 'face)
+      (unless (or (nth 4 (syntax-ppss pos))
+                  (nth 3 (syntax-ppss pos)))
         (cond
          ((= ?\( (elt line n)) (setq count (1+ count)))
          ((= ?\) (elt line n)) (setq count (1- count)))))
@@ -386,7 +387,7 @@ true, search backwards from the end."
       (goto-char start-pos)
       (catch 'done
         (while (funcall searcher re bound t)
-          (unless (get-text-property (match-beginning 0) 'face)
+          (unless (or (nth 4 (syntax-ppss)) (nth 3 (syntax-ppss)))
             (throw 'done (match-beginning 0))))
         nil))))
 
