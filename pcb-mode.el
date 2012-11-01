@@ -649,6 +649,9 @@ like enabling `eldoc-mode' or `abbrev-mode'."
   (set (make-local-variable 'completion-at-point-functions)
        (cons 'pcb-mode-completion-at-point completion-at-point-functions))
 
+  ;; Only check comments with ispell
+  (set (make-local-variable 'ispell-check-comments) 'exclusive)
+
   ;; Mode hook
   (run-mode-hooks 'pcb-mode-hook))
 
