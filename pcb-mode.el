@@ -568,7 +568,8 @@ indentation. To control the basic offset of the indentation,
 customize the variable `pcb-mode-offset'.
 
 There is support for `imenu', useful in layout files. The indexed
-items are elements and they are listed by refdes.
+items are elements and they are listed by refdes. To use it,
+either use \\[imenu] or use the \"Elements\" menu item.
 
 There is symbol completion at point (use \\[complete-symbol]),
 which completes the PCB keywords. For quicker insertion of
@@ -638,6 +639,7 @@ like enabling `eldoc-mode' or `abbrev-mode'."
 
   ;; Imenu
   (setq imenu-generic-expression pcb-mode-imenu-generic-expression)
+  (imenu-add-to-menubar "Elements")
 
   ;; Eldoc
   (set (make-local-variable 'eldoc-documentation-function)
