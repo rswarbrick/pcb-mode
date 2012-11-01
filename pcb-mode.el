@@ -553,6 +553,12 @@ in `pcb-mode'."
       (when (and beg end)
         (list beg end (mapcar #'car pcb-mode-keywords))))))
 
+;; Mode hook
+(defvar pcb-mode-hook nil
+  "List of functions to call when PCB mode is invoked.
+This hook is automatically executed after `pcb-mode' is fully
+loaded.")
+
 ;;; Finally set everything up ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pcb-mode ()
   "Major mode for editing files for the gEDA PCB program.
@@ -560,6 +566,9 @@ in `pcb-mode'."
 The mode features syntax highlighting and automatic
 indentation. To control the basic offset of the indentation,
 customize the variable `pcb-mode-offset'.
+
+There is support for `imenu', useful in layout files. The indexed
+items are elements and they are listed by refdes.
 
 There is symbol completion at point (use \\[complete-symbol]),
 which completes the PCB keywords. For quicker insertion of
@@ -582,7 +591,12 @@ backwards-compatibility reasons, PCB allows several different
 sets of arguments to each keyword, which makes guessing argument
 lists rather problematic. We try to guess which one is right by
 looking at the brackets used and the number of arguments, but
-this is probably rather brittle."
+this is probably rather brittle.
+
+As is standard for major modes, there is a `pcb-mode-hook', which
+is a list of functions that get called just before `pcb-mode'
+finishes setting things up. This is a good place to do things
+like enabling `eldoc-mode' or `abbrev-mode'."
   (interactive)
 
   ;; Kill local variables, as instructed in "Major Mode Conventions"
@@ -629,8 +643,10 @@ this is probably rather brittle."
 
   ;; Completion
   (set (make-local-variable 'completion-at-point-functions)
-       (cons 'pcb-mode-completion-at-point completion-at-point-functions)))
+       (cons 'pcb-mode-completion-at-point completion-at-point-functions))
 
+  ;; Mode hook
+  (run-mode-hooks 'pcb-mode-hook))
 
 ;; Make "require" work
 (provide 'pcb-mode)
