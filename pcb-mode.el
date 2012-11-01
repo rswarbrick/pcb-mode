@@ -22,7 +22,7 @@
   "Customizations for PCB mode."
   :prefix "pcb-" :group 'text)
 
-(defconst pcb-mode-version 0 "Current version of PCB mode")
+(defconst pcb-mode-version 1 "Current version of PCB mode")
 
 ;;; Font lock and syntax recognition ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
