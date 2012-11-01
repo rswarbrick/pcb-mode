@@ -124,7 +124,7 @@ surrounding bracket. An entry of NIL means that either type
 works.")
 
 (defconst pcb-mode-keyword-regexp
-  (regexp-opt (mapcar #'car pcb-mode-keywords))
+  (regexp-opt (mapcar #'car pcb-mode-keywords) 'words)
   "An optimised regexp that matches `pcb-keywords'.")
 
 (defconst pcb-mode-syntax-table
@@ -617,7 +617,7 @@ like enabling `eldoc-mode' or `abbrev-mode'."
 
   ;; Font lock keywords
   (set (make-local-variable 'font-lock-defaults)
-       `(,(mapcar #'car pcb-mode-keywords)))
+       `((,pcb-mode-keyword-regexp 0 font-lock-keyword-face)))
   (font-lock-set-defaults)
 
   ;; Syntax recognition
