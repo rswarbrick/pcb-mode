@@ -580,7 +580,7 @@ for a Pad[] call, covering the specified region."
       (error "Degenerate rectangle for pad."))
     (list (- centre-x sweep-x) (- centre-y sweep-y)
           (+ centre-x sweep-x) (+ centre-y sweep-y)
-          (max dx dy))))
+          (min dx dy))))
 
 (defun pcb-mode-insert-pad-as-rectangle (x1 y1 x2 y2 clr sldr)
   "Prompt the user for dimensions of a rectangle to cover and
