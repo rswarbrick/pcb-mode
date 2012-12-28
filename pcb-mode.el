@@ -370,7 +370,7 @@ buffer."
   "If point is at a keyword, return its entry in
 `pcb-mode-keywords' (see that variable for the
 format). Otherwise, return nil. "
-  (let ((key (car (member (word-at-point)
+  (let ((key (car (member (thing-at-point 'word)
                           (mapcar #'car pcb-mode-keywords)))))
     (when key (assoc key pcb-mode-keywords))))
 
