@@ -140,31 +140,40 @@ works.")
       (modify-syntax-entry ?\' "\"")
       table)))
 
-(defconst pcb-mode-syntax-propertize-function
-  (syntax-propertize-rules
-   ("\\(?:.\\|\n\\)'" (0 (ignore (pcb-mode-char-constant-propertize)))))
-  "In PCB mode, syntax-propertize-function is used to match
+;; syntax-propertize-* only works on Emacs 24+. We use
+;; font-lock-syntactic-keywords otherwise (see PCB-MODE for that code)
+(when (fboundp 'syntax-propertize-rules)
+  (defconst pcb-mode-syntax-propertize-function
+    (syntax-propertize-rules
+     ("\\(?:.\\|\n\\)'" (0 (ignore (pcb-mode-char-constant-propertize)))))
+    "In PCB mode, syntax-propertize-function is used to match
 character constants, written in the form 'x'. This is because PCB
 treats ''' as a character constant containing a quote, and the
 standard Emacs syntax machinery doesn't support that.")
 
-(defun pcb-mode-char-constant-propertize ()
-  "Correctly marks syntax for special characters inside ''
+  (defun pcb-mode-char-constant-propertize ()
+    "Correctly marks syntax for special characters inside ''
 constants. When called (via pcb-mode-syntax-propertize-function),
 point is just past a quote, which is known not to be the first
 character of the buffer.
 
 Basically, this just has to suppress any special syntax of a
 character immediately following a \"starting\" quote."
-  (let* ((pos (1- (point)))
-         (ppss (prog1 (syntax-ppss pos) (goto-char (1+ pos))))
-         (in-string-p (and (not (nth 4 ppss)) (nth 8 ppss))))
-    ;; This quote character should a single char constant, and there is a
-    ;; following character to de-fang. "w" seems slightly wrong, but there's no
-    ;; "nothing special" syntax on offer.
-    (when (and (not in-string-p) (< (point) (point-max)))
-      (put-text-property
-       (1+ pos) (+ pos 2) 'syntax-table (string-to-syntax "w")))))
+    (let* ((pos (1- (point)))
+           (ppss (prog1 (syntax-ppss pos) (goto-char (1+ pos))))
+           (in-string-p (and (not (nth 4 ppss)) (nth 8 ppss))))
+      ;; This quote character should a single char constant, and there is a
+      ;; following character to de-fang. "w" seems slightly wrong, but there's no
+      ;; "nothing special" syntax on offer.
+      (when (and (not in-string-p) (< (point) (point-max)))
+        (put-text-property
+         (1+ pos) (+ pos 2) 'syntax-table (string-to-syntax "w"))))))
+
+;; If we didn't define pcb-mode-syntax-propertize-function, then we need to sort
+;; out our local font-lock-syntactic-keywords.
+(unless (boundp 'pcb-mode-syntax-propertize-function)
+  (defvar pcb-mode-font-lock-syntactic-keywords
+    '(("'\\('\\)'" (1 "w" t)))))
 
 ;;; Indentation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -659,15 +668,24 @@ like enabling `eldoc-mode' or `abbrev-mode'."
   (set (make-local-variable 'comment-start-skip)
        "\\(\\(?:^\\|[^'\n]\\)[[:space:]]*\\)#")
 
-  ;; Font lock keywords
+  ;; Font lock keywords. Only set font-lock-syntactic-keywords if we're not on
+  ;; Emacs 24 with syntax-propertize-function.
   (set (make-local-variable 'font-lock-defaults)
-       `(((,pcb-mode-keyword-regexp 0 font-lock-keyword-face))))
+       (if (boundp 'pcb-mode-syntax-propertize-function)
+           `(((,pcb-mode-keyword-regexp 0 font-lock-keyword-face)))
+         `(((,pcb-mode-keyword-regexp 0 font-lock-keyword-face))
+           nil nil nil nil
+           (font-lock-syntactic-keywords
+            . pcb-mode-font-lock-syntactic-keywords))))
   (font-lock-set-defaults)
 
   ;; Syntax recognition
   (set-syntax-table pcb-mode-syntax-table)
-  (set (make-local-variable 'syntax-propertize-function)
-       pcb-mode-syntax-propertize-function)
+  ;; Use syntax-propertize-function if we can (Emacs >= 24). Otherwise we used
+  ;; font-lock-syntactic-keywords in the previous section.
+  (when (boundp 'pcb-mode-syntax-propertize-function)
+    (set (make-local-variable 'syntax-propertize-function)
+         pcb-mode-syntax-propertize-function))
 
   ;; Indentation
   (set (make-local-variable 'indent-line-function)
