@@ -2,6 +2,7 @@
 
 ;; Copyright (C) 2012  Rupert Swarbrick
 ;; Author: Rupert Swarbrick <rswarbrick@gmail.com>
+;; License: GPL version 3, or any later version
 
 ;;; Commentary:
 
